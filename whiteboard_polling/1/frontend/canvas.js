@@ -1,6 +1,53 @@
 // Polling-based Whiteboard client
 const ROOM_ID = "room_4474"; // replace after gen_config
 const API = "http://localhost:8000";
+const FILTERS = ["blur", "invert"];
+const select = document.getElementById("filter-select");
+FILTERS.forEach(f => {
+    const opt = document.createElement("option");
+    opt.value = f;
+    opt.textContent = f;
+    select.appendChild(opt);
+});
+
+document.getElementById("apply-filter")
+        .addEventListener("click", applyFilter);
+async function applyFilter() {
+  const { width, height } = canvas;
+  // Отримуємо пікселі з Canvas
+  
+	ctx.save();
+	ctx.globalCompositeOperation = "destination-over";
+	ctx.fillStyle = "#ffffff";
+	ctx.fillRect(0, 0, canvas.width, canvas.height);
+	ctx.restore();
+  
+  const imgData = ctx.getImageData(0, 0, width, height);
+  const dataArray = Array.from(imgData.data);  // Перетворюємо у звичайний масив
+
+
+
+
+  const filterName = select.value;  // Обраний у селекті фільтр
+
+  // Відправляємо POST-запит на бекенд з даними зображення
+  const res = await fetch(`http://localhost:8000/filter/${ROOM_ID}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      image_data: dataArray,
+      filter_name: filterName,
+      width,
+      height
+    })
+  });
+  const json = await res.json();  // Чекаємо відповідь
+
+  // Отримуємо перетворені пікселі та малюємо назад на Canvas
+  const newData = new Uint8ClampedArray(json.image_data);
+  ctx.putImageData(new ImageData(newData, width, height), 0, 0);
+}
+
 
 const canvas = document.getElementById('board');
 const ctx = canvas.getContext('2d');
